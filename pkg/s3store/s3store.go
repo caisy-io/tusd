@@ -303,6 +303,16 @@ type s3Part struct {
 	etag   string
 }
 
+func getContentType(metaData handler.MetaData) *string {
+	keys := []string{"filetype", "contentType", "ContentType", "Content-Type"}
+	for _, key := range keys {
+		if value := metaData[key]; value != "" {
+			return &value
+		}
+	}
+	return nil
+}
+
 func (store S3Store) NewUpload(ctx context.Context, info handler.FileInfo) (handler.Upload, error) {
 	// an upload larger than MaxObjectSize must throw an error
 	if info.Size > store.MaxObjectSize {
@@ -329,7 +339,7 @@ func (store S3Store) NewUpload(ctx context.Context, info handler.FileInfo) (hand
 		Bucket:      aws.String(store.Bucket),
 		Key:         store.keyWithPrefix(objectId),
 		Metadata:    metadata,
-		ContentType: aws.String(info.MetaData["contentType"]),
+		ContentType: getContentType(info.MetaData),
 	})
 	store.observeRequestDuration(t, metricCreateMultipartUpload)
 	if err != nil {
